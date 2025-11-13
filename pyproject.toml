@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-verifmsi = { git = "https://github.com/quentin-meunier/VerifMSI", rev = "5aa54b0bfac7a4aaa8ceb4bd63065218db6381f5" }
+verifmsi = { git = "https://github.com/cassiersg/VerifMSI", rev = "b75fad3efefa4c9218f7aeb8d71a5785bd95e70a" }
 rbackend = { path = "./rbackend" }
 
 [tool.uv]
