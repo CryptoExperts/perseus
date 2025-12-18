@@ -54,6 +54,15 @@ class Gadget:
         pass
 
     @abc.abstractmethod
+    def n_sharings_leak(self, gate_leakage: bool) -> int:
+        pass
+
+    @abc.abstractmethod
+    def n_leaks_sharings_lb(self, gate_leakage: bool) -> list[int]:
+        """number of times each input sharing is leaked"""
+        pass
+
+    @abc.abstractmethod
     def extended_probes(self, gate_leakage: bool) -> list[list[gates.Gate]]:
         """Extended probes in the gadget
 
@@ -94,7 +103,8 @@ class Gadget:
 class NoSimGadget(Gadget):
     """Gadget without simulation, has no computation inside."""
 
-    pass
+    def n_sharings_leak(self, gate_leakage: bool) -> int:
+        return 0
 
 
 class SimGadget(Gadget):
@@ -120,6 +130,15 @@ class InputSharing(SimGadget):
             return []
         else:
             return max(0, self._n_output_uses - 1) * [[s] for s in self.shares]
+
+    def n_sharings_leak(self, gate_leakage: bool) -> int:
+        if gate_leakage or not INCLUDE_COPY_GATES:
+            return 0
+        else:
+            return max(0, self._n_output_uses - 1)
+
+    def n_leaks_sharings_lb(self, gate_leakage: bool) -> list[int]:
+        return [self.n_sharings_leak(gate_leakage)]
 
     def output_sharing(self) -> list[gates.Gate]:
         return self.shares
@@ -148,11 +167,17 @@ class OutputSharing(NoSimGadget):
     def extended_probes(self, gate_leakage: bool) -> list[list[gates.Gate]]:
         return []
 
+    def n_sharings_leak(self, gate_leakage: bool) -> int:
+        return 0
+
     def output_sharing(self) -> list[gates.Gate]:
         raise NotImplementedError()
 
     def inputs(self) -> "Sequence[Gadget]":
         return [self.input]
+
+    def n_leaks_sharings_lb(self, gate_leakage: bool) -> list[int]:
+        return [0]
 
 
 class OpGadget(SimGadget):
@@ -295,6 +320,12 @@ class ZeroSharingRefresh(Refresh):
         ]
         return y, lr + y
 
+    def n_sharings_leak(self, gate_leakage: bool) -> int:
+        return 1
+
+    def n_leaks_sharings_lb(self, gate_leakage: bool) -> list[int]:
+        return [self.n_sharings_leak(gate_leakage)]
+
     @classmethod
     @abc.abstractmethod
     def _zero_sharing(cls, n: int) -> tuple[list[gates.Gate], list[gates.Gate]]:
@@ -318,6 +349,12 @@ class HalfRefresh(Refresh):
         z = y if len(y) == len(x) else y + [x[-1]]
         assert len(z) == len(x)
         return z, y
+
+    def n_sharings_leak(self, gate_leakage: bool) -> int:
+        return 1
+
+    def n_leaks_sharings_lb(self, gate_leakage: bool) -> list[int]:
+        return [self.n_sharings_leak(gate_leakage)]
 
 
 class HalfRefresh2(Refresh):
@@ -344,6 +381,12 @@ class HalfRefresh2(Refresh):
             y = y + [z0, z_last]
         assert len(z) == len(x)
         return z, y
+
+    def n_sharings_leak(self, gate_leakage: bool) -> int:
+        return 1
+
+    def n_leaks_sharings_lb(self, gate_leakage: bool) -> list[int]:
+        return [self.n_sharings_leak(gate_leakage)]
 
 
 class SimpleRefresh(ZeroSharingRefresh):
@@ -429,6 +472,12 @@ class IswMult(OpGadget):
         c, circ_compress = isw_compress(products)
         return c, circ + circ_compress
 
+    def n_sharings_leak(self, gate_leakage: bool) -> int:
+        return 2 * self.d
+
+    def n_leaks_sharings_lb(self, gate_leakage: bool) -> list[int]:
+        return [2, 2]
+
 
 class IswAndNot(OpGadget):
     @classmethod
@@ -447,6 +496,12 @@ class IswAndNot(OpGadget):
         notb += list(b)[1:]
         c, lc = IswMult.circuit([a, notb])
         return c, [notb[0]] + lc
+
+    def n_sharings_leak(self, gate_leakage: bool) -> int:
+        return 2 * self.d
+
+    def n_leaks_sharings_lb(self, gate_leakage: bool) -> list[int]:
+        return [2, 2]
 
 
 MatRef = list[list[tuple[gates.Gate, gates.Gate]]]
@@ -503,6 +558,12 @@ class FullMatRefMult(OpGadget):
         c, circ_compress = isw_compress(products)
         return c, circ + circ_compress
 
+    def n_sharings_leak(self, gate_leakage: bool) -> int:
+        return 2 * self.d
+
+    def n_leaks_sharings_lb(self, gate_leakage: bool) -> list[int]:
+        return [2, 2]
+
 
 class LinearGadget(OpGadget):
     @abc.abstractmethod
@@ -519,6 +580,12 @@ class LinearGadget(OpGadget):
         )
         d, lref = NlognRefresh.circuit(c)
         return d, [leak for leaks in list_leaks for leak in leaks] + lref
+
+    def n_sharings_leak(self, gate_leakage: bool) -> int:
+        return 1
+
+    def n_leaks_sharings_lb(self, gate_leakage: bool) -> list[int]:
+        return [1] * self.arity()
 
 
 class Xor(LinearGadget):

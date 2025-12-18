@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import itertools as it
 import logging
 from typing import Sequence
-from collections import Counter
+from collections import Counter, defaultdict
 import time
 
 import numpy as np
@@ -213,16 +213,18 @@ class GadgetGraph:
         n_bits: int,
     ):
         logging.info("Creating GadgetGraph")
+        self._backend_builder = backend
+        self._max_gadget_outputs = max_gadget_outputs
+        self._n_bits = n_bits
         self.p = p
         self.gate_leakage = gate_leakage
         # Maps each gadget to all gadgets connected to its output.
         gadget_outputs = self._explore_gadgets(outputs)
         for g, uses in gadget_outputs.items():
             g.set_output_uses(uses)
-        gadgets = list(gadget_outputs)
-        gadget_stats = Counter(map(type, gadgets))
-        logging.info(f"Circuit gadgets: {gadget_stats}")
-
+        self._gadgets = list(gadget_outputs)
+        self._gadget_stats = Counter(map(type, self._gadgets))
+        logging.info(f"Circuit gadgets: {self._gadget_stats}")
         gate_kind_count = Counter(g.kind() for g in self._list_gates(outputs))
         logging.info(f"Circuit gates: {gate_kind_count}")
         non_random_gates = sum(
@@ -230,26 +232,17 @@ class GadgetGraph:
         )
         logging.info(f"Non-random gates: {non_random_gates}")
 
-        # gadgets restricted to gadgets leaking (i.e., excludes input
-        # sharings).
-        l_gadgets = [g for g in gadgets if g.leaky(self.gate_leakage)]
         # gadgets restricted to gadgets what compute and for which we
         # therefore need to run a simulator.
-        sim_gadgets = [g for g in gadgets if isinstance(g, SimGadget)]
+        sim_gadgets = [g for g in self._gadgets if isinstance(g, SimGadget)]
         for g in sim_gadgets:
             go = gadget_outputs[g]
             if len(go) > max_gadget_outputs:
                 err_gadget_outputs(f"Gadget {g} has {len(go)} outputs: {go}")
 
         self.inequalities = [Inequality(g, gadget_outputs[g]) for g in sim_gadgets]
-        logging.debug("GadgetGraph: computing sample weights (proba of each ineq)")
-        logging.debug("GadgetGraph: structure done")
-        all_gates = [
-            gate
-            for g in l_gadgets
-            for eprobe in g.extended_probes(self.gate_leakage)
-            for gate in eprobe
-        ]
+
+    def init_for_rps_mc(self):
         logging.debug("Building Sampler")
         self.sampler = Sampler(
             np.random.default_rng(SEED),
@@ -258,7 +251,18 @@ class GadgetGraph:
             self.gate_leakage,
         )
         logging.debug("Building backend")
-        self.backend: backends.Backend = backend(list(set(all_gates)), n_bits)
+        # gadgets restricted to gadgets leaking (i.e., excludes input
+        # sharings).
+        l_gadgets = [g for g in self._gadgets if g.leaky(self.gate_leakage)]
+        all_gates = [
+            gate
+            for g in l_gadgets
+            for eprobe in g.extended_probes(self.gate_leakage)
+            for gate in eprobe
+        ]
+        self.backend: backends.Backend = self._backend_builder(
+            list(set(all_gates)), self._n_bits
+        )
 
     @staticmethod
     def _list_gates(outputs: Sequence[Gadget]) -> set[gates.Gate]:
@@ -287,6 +291,33 @@ class GadgetGraph:
                     stack.append(inp_gadget)
                     gadgets_seen.add(inp_gadget)
         return gadgets
+
+    def composition_lb(self, d: int, check_bound_uses: bool = True) -> float:
+        """Simple LB on RPS. Counts for each sharing the number of times it
+        leaks (based on a 1 (linear, refresh) or 2 (mul) number of uses for
+        each input sharing per gadget, and 1 for computation of the sharing
+        itself)."""
+        # For each sharing (identified by its source gadget), count the number of
+        # time it leaks (start from 1 for gadget generating the sharing).
+        sharings_n_leak = defaultdict(lambda: 1)
+        for g in self._gadgets:
+            for inp, n in zip(g.inputs(), g.n_leaks_sharings_lb(self.gate_leakage)):
+                sharings_n_leak[inp] += n
+        # For each number of times leaking, how many sharings leak that many times.
+        sharings_leaks = list(sorted(Counter(sharings_n_leak.values()).items()))
+        # logging.debug("sharings_n_leak %s", sharings_n_leak)
+        logging.info(f"(Number leaks, number sharings): {sharings_leaks}")
+        if check_bound_uses:
+            assert all(
+                n_leaks <= self._max_gadget_outputs + 1 for n_leaks, _ in sharings_leaks
+            )
+        return sum(n_sh * (n_leaks * self.p) ** d for n_leaks, n_sh in sharings_leaks)
+
+    def trivial_lb(self, d: int) -> float:
+        return (
+            sum(g.n_sharings_leak(self.gate_leakage) for g in self._gadgets)
+            * (3 * self.p) ** d
+        )
 
     def bounds_pre_mc(self, nsamples: int, delta: float) -> tuple[float, float]:
         """Probability of not being provable by SNI composition, computed with

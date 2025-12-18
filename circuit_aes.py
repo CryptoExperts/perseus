@@ -107,18 +107,37 @@ class AddRc(LinearGadget):
 
 
 def field_aes_inv(name, input, opts: AesOptions):
-    input2 = NlognRefresh(f"{name}_r1", input)
-    in_sq = Squaring(f"{name}_s1", input2)  # .^2
-    m1 = opts.mul(f"{name}_m1", input2, in_sq)
-    m1_4 = Squaring2(f"{name}_s2", m1)  # .^4
     if opts.more_refreshes:
-        m1 = NlognRefresh(f"{name}_rm1", m1)
-    m2 = opts.mul(f"{name}_m2", m1_4, m1)
+        input1 = NlognRefresh(f"{name}_mr_inp1", input)
+        input2 = NlognRefresh(f"{name}_mr_inp2", input)
+    else:
+        input1 = input
+        input2 = input
+    in_sq = Squaring(f"{name}_s1", input1)  # .^2
+    if opts.more_refreshes:
+        in_sq1 = NlognRefresh(f"{name}_rm_in_sq1", in_sq)
+        in_sq2 = NlognRefresh(f"{name}_rm_in_sq2", in_sq)
+    else:
+        in_sq1 = in_sq
+        in_sq2 = in_sq
+    m1 = opts.mul(f"{name}_m1", input2, in_sq1)
+    if opts.more_refreshes:
+        m1_1 = NlognRefresh(f"{name}_rm1_1", m1)
+        m1_2 = NlognRefresh(f"{name}_rm1_2", m1)
+    else:
+        m1_1 = m1
+        m1_2 = m1
+    m1_s2 = Squaring2(f"{name}_s2", m1_1)  # .^4
+    if opts.more_refreshes:
+        m1_s2_1 = NlognRefresh(f"{name}_rm1_s2_1", m1_s2)
+        m1_s2_2 = NlognRefresh(f"{name}_rm1_s2_2", m1_s2)
+    else:
+        m1_s2_1 = m1_s2
+        m1_s2_2 = m1_s2
+    m2 = opts.mul(f"{name}_m2", m1_s2_1, m1_2)
     m2_16 = Squaring4(f"{name}_s3", m2)  # .^16
-    m3 = opts.mul(f"{name}_m3", m1_4, m2_16)
-    if opts.more_refreshes:
-        m3 = NlognRefresh(f"{name}_rm3", m3)
-    m4 = opts.mul(f"{name}_m4", m3, in_sq)
+    m3 = opts.mul(f"{name}_m3", m1_s2_2, m2_16)
+    m4 = opts.mul(f"{name}_m4", m3, in_sq2)
     return m4
 
 

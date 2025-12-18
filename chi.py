@@ -36,6 +36,7 @@ if __name__ == "__main__":
     gg = GadgetGraph(
         args.p, y, gate_leakage=not args.wire_model, backend=args.backend, n_bits=1
     )
+    gg.init_for_rps_mc()
     lb, ub = gg.compute_rps_mc(
         n_samples=args.samples,
         delta=args.delta,

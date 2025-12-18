@@ -32,6 +32,11 @@ if __name__ == "__main__":
         action="store_true",
         help="More refreshes in S-Boxes",
     )
+    parser.add_argument(
+        "--lb",
+        action="store_true",
+        help="Compute a simple securety lower-bound",
+    )
     args = parser.parse_args()
     opts = circuit_aes.AesOptions(
         d=args.d,
@@ -51,15 +56,20 @@ if __name__ == "__main__":
         backend=args.backend,
         n_bits=8,
     )
-    logging.info("GadgetGraph initialized")
-    lb, ub = gg.compute_rps_mc(
-        n_samples=args.samples,
-        delta=args.delta,
-        prej_lim=args.prej_lim,
-        e_samples=args.e_samples,
-    )
-    t_end = time.time()
-    logging.info(f"Verification time (s): {t_end-t_start}")
-    print(f"Opt. RPS bounds: [{lb:e}, {ub:e}]")
-    with np.errstate(divide="ignore"):
-        print(f"Opt. RPS bounds: [2**{np.log2(lb)}, 2**{np.log2(ub)}]")
+    if args.lb:
+        print(f"Composition leakage LB: 2**{np.log2(gg.composition_lb(args.d))}")
+        print(f"Internal leakage LB: 2**{np.log2(gg.trivial_lb(args.d))}")
+    else:
+        gg.init_for_rps_mc()
+        logging.info("GadgetGraph initialized")
+        lb, ub = gg.compute_rps_mc(
+            n_samples=args.samples,
+            delta=args.delta,
+            prej_lim=args.prej_lim,
+            e_samples=args.e_samples,
+        )
+        t_end = time.time()
+        logging.info(f"Verification time (s): {t_end-t_start}")
+        print(f"Opt. RPS bounds: [{lb:e}, {ub:e}]")
+        with np.errstate(divide="ignore"):
+            print(f"Opt. RPS bounds: [2**{np.log2(lb)}, 2**{np.log2(ub)}]")
