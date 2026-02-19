@@ -45,3 +45,7 @@ uv run aes.py -d 8 -p '2**-10' --samples='2**12' --backend=favom --e-samples='2*
 - For SNI verification failure, uses the best of `2**14` Monte-Carlo samples and inclusion-exclusion up to size 3.
 
 **Changing the number of cores used** Set the `RAYON_NUM_THREADS` variable to the number of desired threads.
+
+## Reproducing results from the Eurocrypt 2026 paper
+
+Bash scripts that generate the results reported in the 3 tables of the paper are provided in `paper_scripts/`. These assume that `uv` is installed, and (for `script_tab1.sh`) that maskverif is available in `PATH` (see above). Given the fairly long execution time of the whole scripts, it is suggested that readers interested in only selected results copy the command lines from the scripts directly into their shell.
