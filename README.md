@@ -4,7 +4,7 @@ Verification tool for random probing security, for circuits composed of SNI gadg
 
 ## Dependencies
 
-The tool is partially written in Rust, the toolchain needs to be be [installed](https://rust-lang.org/tools/install) (tested version: 1.93.0).
+The tool is partially written in Rust, the toolchain needs to be [installed](https://rust-lang.org/tools/install) (tested version: 1.93.0).
 
 The remaining part of the tool is implemented in Python, we provide
 configuration for automatic management of the dependencies and compilation of
@@ -16,7 +16,7 @@ the Rust code with the [uv tool](https://docs.astral.sh/uv/getting-started/insta
 PERSEUS provides three backends to evaluate the simulatability of tuples:
 - **`favom` (built-in)**: a home-grown backend for fast verification of masking. No extra setup beyond PERSEUS.
 - **`maskverif` (custom fork)**:  build the custom branch and make the binary available on your `PATH`:
-  - Source: <https://github.com/cassiersg/maskverif/tree/verif_single_tuple> (** branch:** `verif_single_tuple`, commit `6b6c5fdb351bdc00d0fb1bcfffc7794b13d78bd1`)
+  - Source: <https://github.com/cassiersg/maskverif/tree/verif_single_tuple> (**branch:** `verif_single_tuple`, commit `6b6c5fdb351bdc00d0fb1bcfffc7794b13d78bd1`)
   - Recommended build:
     ```bash
     git clone -b verif_single_tuple https://github.com/cassiersg/maskverif.git
@@ -45,11 +45,11 @@ uv run aes.py -d 8 -p '2**-10' --samples='2**12' --backend=favom --e-samples='2*
 - Uses `2**12` Monte Carlo samples with the FAVOM verification backend
 - For SNI verification failure, uses the best of `2**14` Monte-Carlo samples and inclusion-exclusion up to size 3.
 
-**Changing the number of cores used** Set the `RAYON_NUM_THREADS` variable to the number of desired threads.
+**Changing the number of cores used** Set the `NUM_THREADS` variable to the number of desired threads (the `verifmsi` backend is always single-threaded).
 
 ## Reproducing results from the Eurocrypt 2026 paper
 
-Bash scripts that generate the results reported in the 3 tables of the paper are provided in `paper_scripts/`. These assume that `uv` is installed, and (for `script_tab1.sh`) that maskverif is available in `PATH` (see above). The printed outputs (also written to `.log` files) are the results reported in the tables.
+Bash scripts that generate the results reported in the 3 tables of the paper are provided in `paper_scripts/`. These assume that `uv` is installed, and (for `script_tab1.sh`) that maskverif is available in `PATH` (see above). The printed outputs (also written to `.log` files) are the results reported in the tables (relevant output is marked with `[RES]`).
 Given the fairly long execution time of the whole scripts, it is suggested that readers interested in only selected results copy the command lines from the scripts directly into their shell.
 
 ### Code structure

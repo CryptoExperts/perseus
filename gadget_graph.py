@@ -225,10 +225,11 @@ class GadgetGraph:
 
         gate_kind_count = Counter(g.kind() for g in self._list_gates(outputs))
         logging.info(f"Circuit gates: {gate_kind_count}")
-        non_random_gates = sum(
-            v for k, v in gate_kind_count.items() if k not in ("random", "share")
+        logging.info(f"[RES] Number of randoms: {gate_kind_count['random']}")
+        true_gates = sum(
+            c for k, c in gate_kind_count.items() if k not in ("random", "share")
         )
-        logging.info(f"Non-random gates: {non_random_gates}")
+        logging.info(f"[RES] Number of 'true' gates: {true_gates}")
 
         # gadgets restricted to gadgets leaking (i.e., excludes input
         # sharings).
@@ -349,7 +350,9 @@ class GadgetGraph:
         main_delta = delta if e_samples is None else delta / 2
         logging.info("Start SNI failure probability computation")
         snifail_lb, snifail_ub = self.bounds_pre(prej_lim, e_samples, pre_delta)
-        logging.info(f"SNI failure proba bounds: [{snifail_lb:e}, {snifail_ub:e}]")
+        logging.info(
+            f"[RES] SNI failure proba bounds [alpha^L, alpha^U]: [{snifail_lb:e}, {snifail_ub:e}]"
+        )
         n_failures = self.cond_sim_failures(n_samples)
         lb, ub = bernouilli_bound(n_samples, n_failures, main_delta)
         logging.info(f"raw bounds: [{lb:e}, {ub:e}]")

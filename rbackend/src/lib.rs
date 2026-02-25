@@ -264,6 +264,14 @@ fn check_tuples_sample_probes(
 
 #[pymodule]
 fn rbackend(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    if let Ok(num_threads) = std::env::var("NUM_THREADS") {
+        if let Ok(num_threads) = num_threads.parse() {
+            rayon::ThreadPoolBuilder::new()
+                .num_threads(num_threads)
+                .build_global()
+                .unwrap();
+        }
+    }
     m.add_class::<favom::FavomExprs>()?;
     m.add_class::<favom::FavomState>()?;
     m.add_class::<favom::Expr>()?;

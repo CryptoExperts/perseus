@@ -194,6 +194,10 @@ def get_backend(all_gates: list[gates.Gate], n_bits: int):
         raise Exception(
             "Could not find 'maskverif.exe', PATH={}".format(os.environ.get("PATH"))
         )
-    return MaskVerifBackendMT(
-        all_gates, num_workers=int(os.environ.get("NUM_THREADS", "8")), mv_exec=mv_exec
-    )
+    if "NUM_THREADS" in os.environ:
+        num_threads = int(os.environ["NUM_THREADS"])
+    else:
+        num_threads = os.cpu_count()
+        if num_threads is None:
+            num_threads = 1
+    return MaskVerifBackendMT(all_gates, num_workers=num_threads, mv_exec=mv_exec)

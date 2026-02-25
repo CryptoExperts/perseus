@@ -59,7 +59,7 @@ if __name__ == "__main__":
         e_samples=args.e_samples,
     )
     t_end = time.time()
-    logging.info(f"Verification time (s): {t_end-t_start}")
-    print(f"Opt. RPS bounds: [{lb:e}, {ub:e}]")
+    logging.info(f"[RES] Verification time (s): {t_end-t_start}")
+    logging.info(f"[RES] Opt. RPS bounds [e^L, e^U]: [{lb:e}, {ub:e}]")
     with np.errstate(divide="ignore"):
-        print(f"Opt. RPS bounds: [2**{np.log2(lb)}, 2**{np.log2(ub)}]")
+        print(f"Opt. RPS bounds [e^L, e^U]: [2**{np.log2(lb)}, 2**{np.log2(ub)}]")
