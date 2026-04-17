@@ -24,7 +24,9 @@ def get_backend(name):
             import backend_favom
 
             return lambda *args: backend_favom.get_backend(*args, debug_assert=True)
-    raise ValueError(f"Unknown backend {name}")
+    raise ValueError(
+        f"Unknown backend {name}, known backends are 'verifmsi', 'maskverif' or 'favom'."
+    )
 
 
 def get_refresh(name: str):

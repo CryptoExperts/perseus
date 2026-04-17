@@ -6,7 +6,7 @@ Verification tool for random probing security, for circuits composed of SNI gadg
 
 The tool is partially written in Rust, the toolchain needs to be [installed](https://rust-lang.org/tools/install) (tested version: 1.93.0).
 
-The remaining part of the tool is implemented in Python, we provide
+The remaining part of the tool is implemented in Python (tested version: 3.12), we provide
 configuration for automatic management of the dependencies and compilation of
 the Rust code with the [uv tool](https://docs.astral.sh/uv/getting-started/installation/)
 (tested version: 0.9.4).
@@ -17,13 +17,13 @@ PERSEUS provides three backends to evaluate the simulatability of tuples:
 - **`favom` (built-in)**: a home-grown backend for fast verification of masking. No extra setup beyond PERSEUS.
 - **`maskverif` (custom fork)**:  build the custom branch and make the binary available on your `PATH`:
   - Source: <https://github.com/cassiersg/maskverif/tree/verif_single_tuple> (**branch:** `verif_single_tuple`, commit `6b6c5fdb351bdc00d0fb1bcfffc7794b13d78bd1`)
-  - Recommended build:
+  - We suggest building maskinverif using Nix (tested version: 2.29.0), which make it easy to get the correct Ocaml toolchain. Recommended build steps:
     ```bash
     git clone -b verif_single_tuple https://github.com/cassiersg/maskverif.git
     cd maskverif
-    nix-shell        # optional but recommended: provides a consistent OCaml toolchain
-    dune build
-    # make the freshly built binary available (run this before running PERSEUS, not in the nix-shell)
+    NIX_PATH=nixpkgs=channel:nixos-25.11 nix-shell --run "dune build"
+    # make the freshly built binary available (set this environment variable in
+    # the same shell as the one used for running PERSEUS)
     export PATH="$PWD:$PATH"
     ```
 - **`verifMSI`**: extracted from the verifMSI tool and installed automatically via `uv` alongside PERSEUS; no manual steps required.
@@ -49,8 +49,15 @@ uv run aes.py -d 8 -p '2**-10' --samples='2**12' --backend=favom --e-samples='2*
 
 ## Reproducing results from the Eurocrypt 2026 paper
 
-Bash scripts that generate the results reported in the 3 tables of the paper are provided in `paper_scripts/`. These assume that `uv` is installed, and (for `script_tab1.sh`) that maskverif is available in `PATH` (see above). The printed outputs (also written to `.log` files) are the results reported in the tables (relevant output is marked with `[RES]`).
+Bash scripts that generate the results reported in the 3 tables of the paper are provided in `paper_scripts/` (to be run from the artifact's root directory, e.g. `./paper_scripts/script_tab1.sh`). These assume that `uv` is installed, and (for `script_tab1.sh`) that maskverif is available in `PATH` (see above). The printed outputs (also written to `.log` files) are the results reported in the tables (relevant output is marked with `[RES]`).
 Given the fairly long execution time of the whole scripts, it is suggested that readers interested in only selected results copy the command lines from the scripts directly into their shell.
+
+The maskVerif backend may also use a large amount of stack, which may need to be increased (e.g., with `ulimit -s unlimited`).
+
+The table results can be extracted from the log files with the following command:
+```
+grep "\[RES\]\|^===" *.log
+```
 
 ### Code structure
 
